@@ -6,6 +6,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   BadgePlus,
@@ -171,11 +172,18 @@ export function MKeyApp() {
     form: CredentialForm;
   }>({ open: false, siteId: '', form: emptyCredentialForm() });
   const [browserImportOpen, setBrowserImportOpen] = useState(false);
+  const [canUseTitlebarToolbar, setCanUseTitlebarToolbar] = useState(() => window.innerWidth >= 1200);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     void refreshStatus();
+  }, []);
+
+  useEffect(() => {
+    const updateTitlebarToolbar = () => setCanUseTitlebarToolbar(window.innerWidth >= 1200);
+    window.addEventListener('resize', updateTitlebarToolbar);
+    return () => window.removeEventListener('resize', updateTitlebarToolbar);
   }, []);
 
   useEffect(() => {
@@ -494,6 +502,48 @@ export function MKeyApp() {
     return null;
   }
 
+  const vaultActions = (
+    <div className="vault-actions">
+      <div className="layout-switcher" role="group" aria-label="条目显示方式">
+        <button
+          aria-pressed={viewMode === 'card'}
+          className={`view-toggle${viewMode === 'card' ? ' active' : ''}`}
+          type="button"
+          onClick={() => setViewMode('card')}
+        >
+          <LayoutGrid size={15} />
+          卡片
+        </button>
+        <button
+          aria-pressed={viewMode === 'list'}
+          className={`view-toggle${viewMode === 'list' ? ' active' : ''}`}
+          type="button"
+          onClick={() => setViewMode('list')}
+        >
+          <List size={15} />
+          列表
+        </button>
+      </div>
+      <button className="btn btn-secondary" type="button" onClick={() => importInputRef.current?.click()}>
+        <Upload size={15} />
+        导入
+      </button>
+      <button className="btn btn-secondary" type="button" onClick={() => void handleExport()}>
+        <Download size={15} />
+        导出
+      </button>
+      <button className="btn btn-secondary" type="button" onClick={() => setEntryEditor({ open: true, form: emptyEntryForm('folder') })}>
+        <FolderPlus size={15} />
+        添加非网站
+      </button>
+      <button className="btn btn-primary" type="button" onClick={() => setEntryEditor({ open: true, form: emptyEntryForm('site') })}>
+        <BadgePlus size={15} />
+        添加网站
+      </button>
+    </div>
+  );
+  const titlebarToolbarHost = document.getElementById('mkey-titlebar-toolbar');
+
   return (
     <div className="app-frame">
       <aside className="side-nav">
@@ -539,47 +589,9 @@ export function MKeyApp() {
           />
         ) : (
           <>
-            <section className="page-heading">
-              <h1>{APP_NAME}</h1>
-              <div className="vault-actions">
-                <div className="layout-switcher" role="group" aria-label="条目显示方式">
-                  <button
-                    aria-pressed={viewMode === 'card'}
-                    className={`view-toggle${viewMode === 'card' ? ' active' : ''}`}
-                    type="button"
-                    onClick={() => setViewMode('card')}
-                  >
-                    <LayoutGrid size={15} />
-                    卡片
-                  </button>
-                  <button
-                    aria-pressed={viewMode === 'list'}
-                    className={`view-toggle${viewMode === 'list' ? ' active' : ''}`}
-                    type="button"
-                    onClick={() => setViewMode('list')}
-                  >
-                    <List size={15} />
-                    列表
-                  </button>
-                </div>
-                <button className="btn btn-secondary" type="button" onClick={() => importInputRef.current?.click()}>
-                  <Upload size={15} />
-                  导入
-                </button>
-                <button className="btn btn-secondary" type="button" onClick={() => void handleExport()}>
-                  <Download size={15} />
-                  导出
-                </button>
-                <button className="btn btn-secondary" type="button" onClick={() => setEntryEditor({ open: true, form: emptyEntryForm('folder') })}>
-                  <FolderPlus size={15} />
-                  添加非网站
-                </button>
-                <button className="btn btn-primary" type="button" onClick={() => setEntryEditor({ open: true, form: emptyEntryForm('site') })}>
-                  <BadgePlus size={15} />
-                  添加网站
-                </button>
-              </div>
-            </section>
+            {titlebarToolbarHost && canUseTitlebarToolbar
+              ? createPortal(vaultActions, titlebarToolbarHost)
+              : vaultActions}
 
             <section className="stats-row">
               <StatCard icon={<Globe2 size={18} />} label="网站" value={siteCount} />

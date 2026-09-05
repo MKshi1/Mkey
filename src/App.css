@@ -4,6 +4,8 @@ html,
 body,
 #root {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -256,7 +258,108 @@ code {
 }
 
 .app-frame {
-  min-height: 100vh;
+  min-height: 100%;
+}
+
+.desktop-shell {
+  height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-titlebar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 42px;
+  width: 100%;
+  max-width: 100vw;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  isolation: isolate;
+  user-select: none;
+}
+
+.app-titlebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.app-titlebar-brand img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.app-titlebar-drag-region {
+  align-self: stretch;
+  min-width: 0;
+}
+
+.app-titlebar-toolbar {
+  align-items: center;
+  display: flex;
+  height: 42px;
+  min-width: 0;
+  padding-inline-end: 14px;
+}
+
+.app-titlebar-toolbar:empty {
+  display: none;
+}
+
+.app-titlebar-toolbar .vault-actions {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.app-titlebar-toolbar .btn,
+.app-titlebar-toolbar .layout-switcher {
+  flex: none;
+}
+
+.app-titlebar-controls {
+  height: 42px;
+  width: 138px;
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  z-index: 1;
+}
+
+.titlebar-control {
+  width: 46px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.titlebar-control:hover { background: var(--bg-hover); color: var(--text-primary); }
+.titlebar-close:hover { background: #c42b39; color: #fff; }
+
+.desktop-shell.is-windows > .app-frame {
+  height: calc(100vh - 42px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.desktop-shell.is-windows .main-wrapper {
+  padding-top: 54px;
 }
 
 .side-nav {

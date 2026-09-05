@@ -141,7 +141,7 @@ describe('MKeyApp vault toolbar', () => {
     render(<MKeyApp />);
 
     await screen.findByText('测试网站');
-    expect(screen.getByRole('heading', { name: 'MKey' })).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'MKey' })).toBeNull();
     expect(screen.getByRole('img', { name: 'MKey' })).not.toBeNull();
     expect(screen.queryByText('书签与账密保险库')).toBeNull();
     expect(screen.queryByText('一个条目集中管理网址、书签和多组账号密码。')).toBeNull();
