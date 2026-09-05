@@ -1,0 +1,46 @@
+{
+  "name": "mkey",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A local-first encrypted bookmark and credential vault built with Tauri.",
+  "author": "MKshi1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MKshi1/Mkey.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "generate:test-data": "node scripts/write-test-data.js",
+    "seed:test-vault": "cargo run --manifest-path src-tauri/Cargo.toml --example seed_stress_vault -- test-data/mkey-stress-import.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run typecheck",
+    "build": "npm run sync-version && tsc && vite build",
+    "preview": "vite preview",
+    "pretauri": "npm run typecheck",
+    "tauri": "npm run sync-version && tauri",
+    "sync-version": "node scripts/sync-version.js"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "lucide-react": "^0.562.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "jsdom": "^30.0.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vitest": "^5.0.0"
+  }
+}

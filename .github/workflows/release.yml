@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read and validate version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF_NAME}" != "v${VERSION}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version v${VERSION}." >&2
+            exit 1
+          fi
+          echo "value=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            platform: windows-latest
+            target: ""
+            args: --bundles nsis,msi
+          - label: Linux x64
+            platform: ubuntu-22.04
+            target: ""
+            args: --bundles appimage,deb
+          - label: macOS Apple Silicon
+            platform: macos-latest
+            target: aarch64-apple-darwin
+            args: --bundles dmg --target aarch64-apple-darwin
+          - label: macOS Intel
+            platform: macos-latest
+            target: x86_64-apple-darwin
+            args: --bundles dmg --target x86_64-apple-darwin
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and upload release bundles
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && '-' || '' }}
+        with:
+          tagName: v__VERSION__
+          releaseName: MKey v__VERSION__
+          releaseBody: |
+            MKey 首个公开版本。
+
+            功能包括本地加密保险库、网站与普通条目、多书签、多组账号密码、搜索、卡片/列表视图、密码生成、四套主题以及 JSON 导入导出。
+
+            下载说明：
+            - Windows：优先选择 NSIS setup `.exe`，也提供 `.msi`。
+            - Linux：提供 `.AppImage` 与 Debian `.deb`。
+            - macOS：分别提供 Apple Silicon 与 Intel `.dmg`。
+
+            注意：这些安装包未使用商业代码签名证书，Windows SmartScreen 或 macOS Gatekeeper 可能显示来源未知提示。请只从本仓库下载。
+          releaseDraft: true
+          prerelease: false
+          releaseCommitish: ${{ github.sha }}
+          releaseAssetNamePattern: MKey_[version]_[platform]_[arch][setup].[ext]
+          args: ${{ matrix.args }}
+
+  publish-release:
+    name: Publish complete release
+    needs:
+      - validate
+      - build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v${{ needs.validate.outputs.version }}
+        run: gh release edit "${RELEASE_TAG}" --draft=false --repo "${GITHUB_REPOSITORY}"
