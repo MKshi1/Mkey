@@ -20,6 +20,7 @@ export function SettingsPage(props: {
   themeMode: ThemeMode;
   onLock: () => void;
   onImport: () => void;
+  onLegacyImport: () => void;
   onBrowserImport: () => void;
   onExport: () => void;
   onThemeChange: (theme: ThemeMode) => void;
@@ -72,6 +73,10 @@ export function SettingsPage(props: {
             <button className="btn btn-secondary" type="button" onClick={props.onImport}>
               <Upload size={15} />
               导入 MKey 数据
+            </button>
+            <button className="btn btn-secondary" type="button" onClick={props.onLegacyImport}>
+              <Upload size={15} />
+              迁移旧版账密
             </button>
             <button className="btn btn-secondary" type="button" onClick={props.onBrowserImport}>
               <Upload size={15} />

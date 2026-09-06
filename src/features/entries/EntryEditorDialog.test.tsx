@@ -15,6 +15,8 @@ describe('EntryEditorDialog', () => {
           domain: '',
           description: '',
           tags: '',
+          workspace: '',
+          category: '工具',
           accent: '#C2185B',
           favorite: false,
         }}
@@ -41,6 +43,8 @@ describe('EntryEditorDialog', () => {
           domain: 'example.com',
           description: '',
           tags: '',
+          workspace: '',
+          category: '工具',
           accent: '#1D4ED8',
           favorite: false,
         }}
@@ -58,7 +62,7 @@ describe('EntryEditorDialog', () => {
       name: '示例站点',
       domain: '',
       description: '',
-      tags: [],
+      tags: ['分类：工具'],
       accent: '#1D4ED8',
       favorite: false,
     });

@@ -19,12 +19,14 @@ a {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 12px 14px;
   border-radius: var(--radius-md);
@@ -934,6 +936,105 @@ code {
 .search-result-actions {
   display: inline-flex;
   gap: 10px;
+}
+
+.search-result-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.search-result-items span {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.spaces-heading p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+}
+
+.space-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.space-card {
+  position: relative;
+  min-height: 170px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  text-align: start;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.space-card:hover {
+  border-color: var(--primary-border);
+  background: var(--bg-secondary);
+}
+
+.space-card-muted { color: var(--text-secondary); }
+
+.space-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.space-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.space-card-open {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  color: var(--text-secondary);
+}
+
+.workspace-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.workspace-filter button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
 }
 
 .inline-empty,

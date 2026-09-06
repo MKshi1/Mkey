@@ -13,8 +13,9 @@ use super::browser_import::{
 use super::crypto::{derive_key, validate_master_password, KEY_LENGTH, SALT_LENGTH};
 use super::model::{
     BookmarkInput, BrowserBookmarkImportRequest, BrowserBookmarkSource, CredentialInput,
-    PortableVault, SiteInput, VaultPayload, VaultSnapshot, VaultStatus,
+    CredentialRecord, EntryKind, PortableVault, SiteInput, SiteRecord, VaultPayload, VaultSnapshot, VaultStatus,
 };
+use serde::Deserialize;
 use super::service::{
     build_snapshot, delete_bookmark as delete_bookmark_record,
     delete_credential as delete_credential_record, delete_site as delete_site_record,
@@ -255,6 +256,66 @@ pub fn import_vault_data(
     mutate_vault(state, |vault| {
         let imported = parse_portable_vault(&json)?;
         vault.payload.sites = normalize_imported_sites(imported.sites)?;
+        Ok(())
+    })
+}
+
+#[derive(Deserialize)]
+struct LegacyToken {
+    #[serde(default)]
+    refresh_token: String,
+}
+
+#[derive(Deserialize)]
+struct LegacyAccount {
+    #[serde(default)]
+    email: String,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    notes: Option<String>,
+    token: LegacyToken,
+}
+
+#[derive(Deserialize)]
+struct LegacyAccountCollection {
+    #[serde(default)]
+    accounts: Vec<LegacyAccount>,
+}
+
+#[tauri::command]
+pub fn import_legacy_accounts(json: String, state: State<'_, VaultState>) -> Result<VaultSnapshot, String> {
+    let accounts = serde_json::from_str::<Vec<LegacyAccount>>(&json)
+        .or_else(|_| serde_json::from_str::<LegacyAccount>(&json).map(|account| vec![account]))
+        .or_else(|_| serde_json::from_str::<LegacyAccountCollection>(&json).map(|collection| collection.accounts))
+        .map_err(|_| "不是可识别的旧版账号导出文件。".to_string())?;
+    mutate_vault(state, |vault| {
+        let now = now_iso();
+        let site = if let Some(existing) = vault.payload.sites.iter_mut().find(|site| site.name == "旧版账号迁移") {
+            existing
+        } else {
+            vault.payload.sites.push(SiteRecord {
+                id: uuid::Uuid::new_v4().to_string(), kind: EntryKind::Folder,
+                name: "旧版账号迁移".to_string(), domain: String::new(),
+                description: "由旧版 KeyLink 账号数据离线迁移。".to_string(), tags: vec!["空间：迁移".to_string()], accent: "#C2185B".to_string(), favorite: false,
+                created_at: now.clone(), updated_at: now.clone(), bookmarks: Vec::new(), credentials: Vec::new(),
+            });
+            vault.payload.sites.last_mut().expect("legacy migration folder was added")
+        };
+        let mut imported = 0;
+        for account in accounts {
+            let email = account.email.trim();
+            let token = account.token.refresh_token.trim();
+            if email.is_empty() || token.is_empty() || site.credentials.iter().any(|credential| credential.username == email) { continue; }
+            let label = account.name.unwrap_or_else(|| email.to_string());
+            let note = [account.notes.unwrap_or_default(), if account.tags.is_empty() { String::new() } else { format!("标签：{}", account.tags.join(", ")) }].into_iter().filter(|value| !value.trim().is_empty()).collect::<Vec<_>>().join("\n");
+            site.credentials.push(CredentialRecord { id: uuid::Uuid::new_v4().to_string(), label, username: email.to_string(), password: token.to_string(), note, created_at: now.clone(), updated_at: now.clone() });
+            imported += 1;
+        }
+        if imported == 0 { return Err("未找到可迁移的新账号或密钥。".to_string()); }
+        site.updated_at = now;
         Ok(())
     })
 }

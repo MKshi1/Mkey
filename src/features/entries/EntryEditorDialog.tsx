@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Save } from 'lucide-react';
 import { EditorDialog, Field } from '../../shared/EditorDialog';
+import { mergeScopedTags } from '../vault/domain';
 import type { EntryForm, SiteInput } from '../vault/types';
 
 const accentOptions = ['#C2185B', '#0F8494', '#5F7D69', '#D06B54', '#7C6BAF', '#49535F'];
@@ -28,7 +29,7 @@ export function EntryEditorDialog(props: {
       name: form.name,
       domain: form.kind === 'folder' ? '' : form.domain,
       description: form.description,
-      tags: splitTags(form.tags),
+      tags: mergeScopedTags(splitTags(form.tags), form.workspace, form.category),
       accent: form.accent,
       favorite: form.favorite,
     });
@@ -90,6 +91,23 @@ export function EntryEditorDialog(props: {
             value={form.tags}
             onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
           />
+        </Field>
+        <Field label="空间">
+          <input
+            aria-label="空间"
+            placeholder="例如：自由职业、旅行计划"
+            value={form.workspace}
+            onChange={(event) => setForm((current) => ({ ...current, workspace: event.target.value }))}
+          />
+        </Field>
+        <Field label="分类">
+          <select
+            aria-label="分类"
+            value={form.category}
+            onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
+          >
+            {['开发', 'AI', '金融', '社交', '工具'].map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
         </Field>
         <div className="field-group">
           <span>颜色</span>

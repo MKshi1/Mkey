@@ -2,13 +2,14 @@ import { useId, useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, FolderTree, Globe2, Pencil, Trash2 } from 'lucide-react';
 import { BookmarkList } from '../bookmarks/BookmarkList';
 import { CredentialList } from '../credentials/CredentialList';
-import { resolveEntryUrl } from '../vault/domain';
+import { entryCategory, entryWorkspace, resolveEntryUrl, visibleTags } from '../vault/domain';
 import type { BookmarkRecord, CredentialRecord, SiteRecord, ViewMode } from '../vault/types';
 import { IconButton } from '../../shared/IconButton';
 
 export function EntryCard(props: {
   entry: SiteRecord;
   viewMode: ViewMode;
+  initialExpanded?: boolean;
   visibleCredentialIds: string[];
   onEditEntry: () => void;
   onDeleteEntry: () => void;
@@ -26,7 +27,10 @@ export function EntryCard(props: {
 }) {
   const { entry } = props;
   const entryUrl = resolveEntryUrl(entry);
-  const [expanded, setExpanded] = useState(false);
+  const workspace = entryWorkspace(entry);
+  const category = entryCategory(entry);
+  const tags = visibleTags(entry);
+  const [expanded, setExpanded] = useState(props.initialExpanded ?? false);
   const detailsId = useId();
 
   return (
@@ -42,10 +46,12 @@ export function EntryCard(props: {
               <span className={entry.kind === 'folder' ? 'pill pill-soft' : 'pill pill-emphasis'}>
                 {entry.kind === 'folder' ? '非网站' : '网站'}
               </span>
+              <span className="pill pill-secondary">{category}</span>
             </div>
             <div className="entry-subline">
               <span>{entry.domain || '无网址'}</span>
-              {entry.tags.length > 0 ? <span>{entry.tags.join(' / ')}</span> : null}
+              {workspace ? <span>空间：{workspace}</span> : null}
+              {tags.length > 0 ? <span>{tags.join(' / ')}</span> : null}
               <span>{entry.bookmarks.length} 个书签 / {entry.credentials.length} 组账密</span>
             </div>
           </div>

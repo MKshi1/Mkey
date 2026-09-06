@@ -165,12 +165,51 @@ pub(crate) fn merge_browser_bookmark_import(
             });
             added_bookmark_count += 1;
         }
+        if !site.tags.iter().any(|tag| tag.starts_with("分类：")) {
+            site.tags.push(format!(
+                "分类：{}",
+                infer_category(&planned_site.domain, &planned_site.bookmarks)
+            ));
+        }
         site.updated_at = now;
     }
     Ok(BrowserBookmarkImportResult {
         preview: plan.preview,
         added_bookmark_count,
     })
+}
+
+fn infer_category(domain: &str, bookmarks: &[PlannedBookmark]) -> &'static str {
+    let titles = bookmarks
+        .iter()
+        .map(|bookmark| bookmark.title.as_str())
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase();
+    let text = format!("{} {}", domain.to_ascii_lowercase(), titles);
+    if ["github", "gitlab", "stackoverflow", "vercel", "npmjs", "docker", "cloudflare"]
+        .iter()
+        .any(|keyword| text.contains(keyword))
+    {
+        "开发"
+    } else if ["openai", "anthropic", "gemini", "huggingface", "deepseek", "模型"]
+        .iter()
+        .any(|keyword| text.contains(keyword))
+    {
+        "AI"
+    } else if ["bank", "wallet", "finance", "证券", "银行", "支付"]
+        .iter()
+        .any(|keyword| text.contains(keyword))
+    {
+        "金融"
+    } else if ["weibo", "twitter", "x.com", "reddit", "bilibili", "youtube", "discord"]
+        .iter()
+        .any(|keyword| text.contains(keyword))
+    {
+        "社交"
+    } else {
+        "工具"
+    }
 }
 
 pub(crate) fn parse_chromium_bookmarks(contents: &str) -> Result<Vec<RawBookmark>, String> {

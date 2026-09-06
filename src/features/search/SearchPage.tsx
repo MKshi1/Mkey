@@ -9,7 +9,7 @@ export function SearchPage(props: {
   inputRef: RefObject<HTMLInputElement | null>;
   onSearchChange: (value: string) => void;
   onOpenEntry: (entry: SiteRecord) => void;
-  onOpenVault: () => void;
+  onViewEntry: (entry: SiteRecord) => void;
 }) {
   return (
     <>
@@ -51,6 +51,10 @@ export function SearchPage(props: {
                 <span>{entry.bookmarks.length} 个书签</span>
                 <span>{entry.credentials.length} 组账密</span>
               </div>
+              <div className="search-result-items">
+                {entry.bookmarks.slice(0, 2).map((bookmark) => <span key={bookmark.id}>链接：{bookmark.title}</span>)}
+                {entry.credentials.slice(0, 2).map((credential) => <span key={credential.id}>凭据：{credential.label || credential.username}</span>)}
+              </div>
             </div>
             <div className="search-result-actions">
               {resolveEntryUrl(entry) ? (
@@ -59,7 +63,7 @@ export function SearchPage(props: {
                   打开
                 </button>
               ) : null}
-              <button className="btn btn-primary btn-small" type="button" onClick={props.onOpenVault}>
+              <button className="btn btn-primary btn-small" type="button" onClick={() => props.onViewEntry(entry)}>
                 查看条目
               </button>
             </div>

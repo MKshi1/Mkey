@@ -35,6 +35,7 @@ pub fn run() {
             vault::commands::generate_password,
             vault::commands::export_vault_data,
             vault::commands::import_vault_data,
+            vault::commands::import_legacy_accounts,
             vault::commands::discover_browser_bookmarks,
             vault::commands::preview_browser_bookmarks,
             vault::commands::merge_browser_bookmarks,

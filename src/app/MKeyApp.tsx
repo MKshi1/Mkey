@@ -15,6 +15,7 @@ import {
   FolderPlus,
   FolderTree,
   Globe2,
+  Layers3,
   LayoutGrid,
   List,
   Lock,
@@ -34,7 +35,8 @@ import { EntryEditorDialog } from '../features/entries/EntryEditorDialog';
 import { SearchPage } from '../features/search/SearchPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { vaultApi } from '../features/vault/api';
-import { filterEntries, formatRuntimeError, resolveEntryUrl } from '../features/vault/domain';
+import { entryCategory, entryWorkspace, filterEntries, formatRuntimeError, resolveEntryUrl, visibleTags } from '../features/vault/domain';
+import { SpacesPage } from '../features/spaces/SpacesPage';
 import type {
   BookmarkForm,
   BookmarkInput,
@@ -82,6 +84,8 @@ function emptyEntryForm(kind: EntryKind = 'site'): EntryForm {
     domain: '',
     description: '',
     tags: '',
+    workspace: '',
+    category: '工具',
     accent: accentOptions[0],
     favorite: false,
   };
@@ -102,7 +106,9 @@ function entryForm(entry: SiteRecord): EntryForm {
     name: entry.name,
     domain: entry.domain,
     description: entry.description,
-    tags: entry.tags.join(', '),
+    tags: visibleTags(entry).join(', '),
+    workspace: entryWorkspace(entry),
+    category: entryCategory(entry),
     accent: entry.accent,
     favorite: entry.favorite,
   };
@@ -130,6 +136,8 @@ function credentialForm(credential: CredentialRecord): CredentialForm {
 
 export function MKeyApp() {
   const [page, setPage] = useState<Page>('vault');
+  const [activeWorkspace, setActiveWorkspace] = useState('');
+  const [activeEntryId, setActiveEntryId] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       return localStorage.getItem('mkey-view-mode') === 'card' ? 'card' : 'list';
@@ -174,6 +182,7 @@ export function MKeyApp() {
   const [browserImportOpen, setBrowserImportOpen] = useState(false);
   const [canUseTitlebarToolbar, setCanUseTitlebarToolbar] = useState(() => window.innerWidth >= 1200);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const legacyImportInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -221,6 +230,11 @@ export function MKeyApp() {
 
   const entries = snapshot?.sites ?? [];
   const filteredEntries = filterEntries(entries, deferredSearch);
+  const workspaceEntries = activeEntryId
+    ? entries.filter((entry) => entry.id === activeEntryId)
+    : activeWorkspace
+    ? entries.filter((entry) => entryWorkspace(entry) === activeWorkspace)
+    : entries;
   const siteCount = entries.filter((entry) => entry.kind === 'site').length;
   const folderCount = entries.filter((entry) => entry.kind === 'folder').length;
   const stats = snapshot?.stats ?? emptyStats;
@@ -502,6 +516,21 @@ export function MKeyApp() {
     return null;
   }
 
+  async function handleLegacyImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      applySnapshot(await vaultApi.importLegacyAccounts(await file.text()));
+      setToast('旧版账号和密钥已迁移到“旧版账号迁移”空间。');
+    } catch (error) {
+      setToast(formatRuntimeError(error));
+    } finally {
+      setBusy(false);
+      event.target.value = '';
+    }
+  }
+
   const vaultActions = (
     <div className="vault-actions">
       <div className="layout-switcher" role="group" aria-label="条目显示方式">
@@ -550,6 +579,7 @@ export function MKeyApp() {
         <img alt={APP_NAME} className="brand-mark" src="/mkey-icon.png" />
         <div className="nav-items nav-items-compact">
           <DockButton active={page === 'vault'} icon={<Bookmark className="nav-item-icon" />} label="保险库" onClick={() => setPage('vault')} />
+          <DockButton active={page === 'spaces'} icon={<Layers3 className="nav-item-icon" />} label="空间" onClick={() => setPage('spaces')} />
           <DockButton active={page === 'search'} icon={<Search className="nav-item-icon" />} label="搜索" onClick={() => setPage('search')} />
           <DockButton active={page === 'settings'} icon={<Settings2 className="nav-item-icon" />} label="设置" onClick={() => setPage('settings')} />
           <button
@@ -571,8 +601,20 @@ export function MKeyApp() {
             inputRef={searchInputRef}
             search={search}
             onOpenEntry={(entry) => void openEntry(entry)}
-            onOpenVault={() => setPage('vault')}
+            onViewEntry={(entry) => {
+              setActiveEntryId(entry.id);
+              setActiveWorkspace('');
+              setPage('vault');
+            }}
             onSearchChange={setSearch}
+          />
+        ) : page === 'spaces' ? (
+          <SpacesPage
+            entries={entries}
+            onOpenWorkspace={(workspace) => {
+              setActiveWorkspace(workspace);
+              setPage('vault');
+            }}
           />
         ) : page === 'settings' ? (
           <SettingsPage
@@ -583,6 +625,7 @@ export function MKeyApp() {
             themeMode={themeMode}
             onExport={() => void handleExport()}
             onImport={() => importInputRef.current?.click()}
+            onLegacyImport={() => legacyImportInputRef.current?.click()}
             onBrowserImport={() => setBrowserImportOpen(true)}
             onLock={() => void handleLock()}
             onThemeChange={setThemeMode}
@@ -601,16 +644,28 @@ export function MKeyApp() {
               <StatCard icon={<ShieldCheck size={18} />} label="弱密码" value={stats.weakPasswordCount} />
             </section>
 
+            {activeEntryId ? (
+              <div className="workspace-filter">
+                <span>搜索结果：{entries.find((entry) => entry.id === activeEntryId)?.name}</span>
+                <button type="button" onClick={() => setActiveEntryId('')}>查看全部</button>
+              </div>
+            ) : activeWorkspace ? (
+              <div className="workspace-filter">
+                <span>空间：{activeWorkspace}</span>
+                <button type="button" onClick={() => setActiveWorkspace('')}>查看全部</button>
+              </div>
+            ) : null}
             <section className={`entry-board is-${viewMode}`}>
-              {entries.length === 0 ? (
+              {workspaceEntries.length === 0 ? (
                 <div className="empty-state-card">
                   <Sparkles size={20} />
                   <p>还没有条目</p>
                 </div>
-              ) : entries.map((entry) => (
+              ) : workspaceEntries.map((entry) => (
                 <EntryCard
                   entry={entry}
                   key={entry.id}
+                  initialExpanded={entry.id === activeEntryId}
                   viewMode={viewMode}
                   visibleCredentialIds={visibleCredentialIds}
                   onAddBookmark={() => setBookmarkEditor({ open: true, siteId: entry.id, form: emptyBookmarkForm() })}
@@ -676,6 +731,13 @@ export function MKeyApp() {
         ref={importInputRef}
         type="file"
         onChange={handleImport}
+      />
+      <input
+        accept="application/json"
+        className="hidden-file-input"
+        ref={legacyImportInputRef}
+        type="file"
+        onChange={handleLegacyImport}
       />
     </div>
   );

@@ -28,6 +28,7 @@ export type VaultApi = {
   generatePassword: (length?: number) => Promise<string>;
   exportData: () => Promise<string>;
   importData: (json: string) => Promise<VaultSnapshot>;
+  importLegacyAccounts: (json: string) => Promise<VaultSnapshot>;
   discoverBrowserBookmarks: () => Promise<BrowserBookmarkSource[]>;
   previewBrowserBookmarks: (request: BrowserBookmarkImportRequest) => Promise<BrowserBookmarkImportPreview>;
   mergeBrowserBookmarks: (request: BrowserBookmarkImportRequest) => Promise<BrowserBookmarkImportResult>;
@@ -55,6 +56,7 @@ export function createVaultApi(invokeFn: InvokeFn): VaultApi {
     generatePassword: (length = 18) => invokeFn<string>('generate_password', { length }),
     exportData: () => invokeFn<string>('export_vault_data'),
     importData: (json) => invokeFn<VaultSnapshot>('import_vault_data', { json }),
+    importLegacyAccounts: (json) => invokeFn<VaultSnapshot>('import_legacy_accounts', { json }),
     discoverBrowserBookmarks: () => invokeFn<BrowserBookmarkSource[]>('discover_browser_bookmarks'),
     previewBrowserBookmarks: (request) => invokeFn<BrowserBookmarkImportPreview>('preview_browser_bookmarks', { request }),
     mergeBrowserBookmarks: (request) => invokeFn<BrowserBookmarkImportResult>('merge_browser_bookmarks', { request }),

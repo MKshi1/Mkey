@@ -1,4 +1,4 @@
-export type Page = 'vault' | 'search' | 'settings';
+export type Page = 'vault' | 'spaces' | 'search' | 'settings';
 export type ViewMode = 'card' | 'list';
 export type ThemeMode = 'neon' | 'pearl' | 'warm' | 'minimal';
 export type EntryKind = 'site' | 'folder';
@@ -93,6 +93,8 @@ export type EntryForm = {
   domain: string;
   description: string;
   tags: string;
+  workspace: string;
+  category: string;
   accent: string;
   favorite: boolean;
 };
@@ -113,7 +115,7 @@ export type CredentialForm = {
   note: string;
 };
 
-export type SiteInput = Omit<EntryForm, 'id' | 'tags'> & {
+export type SiteInput = Omit<EntryForm, 'id' | 'tags' | 'workspace' | 'category'> & {
   id: string | null;
   tags: string[];
 };
