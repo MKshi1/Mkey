@@ -1,6 +1,6 @@
 [package]
 name = "mkey"
-version = "1.0.0"
+version = "1.0.1"
 description = "A local-first encrypted bookmark and credential vault."
 authors = ["MKshi1"]
 license = "MIT"
